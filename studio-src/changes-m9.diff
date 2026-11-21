@@ -1,0 +1,113 @@
+=== ReplicatedStorage.Shared.Config.Game (31 -> 31 lines)
+@@ -5 +5 @@
+-	-- PlaceId лобби появится в вехе 9.
++	-- Веха 9: лобби — второй плейс этой же игры. Переход в лобби и обратно — LobbyLinkService.
+@@ -7 +7 @@
+-		Lobby = 0,
++		Lobby = 106448766989936,
+=== ReplicatedStorage.Shared.Modules.Locale (34 -> 40 lines)
+@@ -10 +10 @@
++-- веха 9: тексты лобби, окна «Не спи!», обмена и украшений дома — тоже в отдельном модуле
++for lang, extra in pairs(require(script.Parent.Parent.Locale.CoopStrings)) do
++	Strings[lang] = Strings[lang] or {}
++	for key, text in pairs(extra) do Strings[lang][key] = text end
++end
++
+=== ReplicatedStorage.Shared.Modules.Net (82 -> 87 lines)
+@@ -29 +29 @@
++	"LobbyAction",         -- клиент -> сервер: вернуться в лобби (веха 9)
++	"AfkPrompt",           -- сервер -> клиенту: окно «Не спи!» с таймером (веха 9, шаг 2.5 ДД)
++	"AfkAction",           -- клиент -> сервер: игрок что-то делает / нажал «Не сплю»
++	"TradeAction",         -- клиент -> сервер: обмен предметами — предложить, ответить, положить, подтвердить, отменить (веха 9)
++	"TradeEvent",          -- сервер -> клиенту: предложение обмена, состояние обмена, игроки рядом
+=== ServerScriptService.Server.Services.DefenseService (874 -> 893 lines)
+@@ -24 +24 @@
++local LobbyLink -- веха 9: код доступа этого сервера и билеты помощников
+@@ -690 +691 @@
++-- Веха 9: клиентам объявление уходит без кода доступа сервера
++local function publicAlert(alert)
++	local copy = table.clone(alert)
++	copy.accessCode = nil
++	return copy
++end
++
+@@ -711 +719 @@
++		-- веха 9: игровые серверы зарезервированы лобби, помощника с другого сервера пускает код доступа
++		serverId = LobbyLink and LobbyLink.ServerId or game.JobId,
++		accessCode = LobbyLink and LobbyLink:AccessCode() or nil,
+@@ -719 +730 @@
+-			Net.Fire(other, "HelpAlert", alert)
++			Net.Fire(other, "HelpAlert", publicAlert(alert))
+@@ -754 +765 @@
+-		opts.ServerInstanceId = alert.jobId
++		if alert.accessCode then
++			opts.ReservedServerAccessCode = alert.accessCode
++		else
++			opts.ServerInstanceId = alert.jobId
++		end
++		-- веха 9: тот сервер узнаёт помощника по билету, который пишет этот сервер, а не по TeleportData
++		if LobbyLink then LobbyLink:HelperTicket(helper, alert) end
+@@ -817 +834 @@
++	local okLink, link = pcall(Loader.Get, "LobbyLinkService")
++	LobbyLink = okLink and link or nil
+@@ -847 +866 @@
+-				Net.FireAll("HelpAlert", alert)
++				Net.FireAll("HelpAlert", publicAlert(alert))
+=== ServerScriptService.Server.Services.PartyService (115 -> 115 lines)
+@@ -1 +1 @@
+--- Команды (решение 5). Пока нет лобби (веха 9), каждый игрок — сам себе хост.
+--- Лобби будет передавать хоста и формат пати через TeleportData: {partyHost = userId, format = "duo"}.
++-- Команды (решение 5). Без лобби (тест в Studio) каждый игрок — сам себе хост.
++-- Веха 9: хоста и формат пати сообщает билет лобби, который сервер читает сам (LobbyLinkService).
+@@ -10 +10 @@
+-local DataService
++local DataService, LobbyLink
+@@ -18 +18 @@
++	local ok, link = pcall(Loader.Get, "LobbyLinkService")
++	LobbyLink = ok and link or nil
+@@ -20 +22 @@
++-- Веха 9: TeleportData приходит через клиент и подделывается, поэтому хоста сообщает билет лобби,
++-- который сервер прочитал сам. Без билета игрок — сам себе хост
+@@ -21 +25 @@
+-	local ok, joinData = pcall(function() return player:GetJoinData() end)
+-	local td = ok and joinData and joinData.TeleportData
+-	local h = type(td) == "table" and tonumber(td.partyHost)
+-	if h and h > 0 then return h end
+-	return player.UserId
++	local arrival = LobbyLink and LobbyLink:Resolve(player)
++	return arrival and arrival.host or player.UserId
+@@ -28 +29 @@
+--- Формат пати из лобби (веха 9). Без лобби — nil, и сервер берёт формат по умолчанию
++-- Формат пати из билета лобби. Без лобби — nil, и сервер берёт формат по умолчанию
+@@ -30 +31 @@
+-	local ok, joinData = pcall(function() return player:GetJoinData() end)
+-	local td = ok and joinData and joinData.TeleportData
+-	local f = type(td) == "table" and td.format
+-	return type(f) == "string" and f or nil
++	local arrival = LobbyLink and LobbyLink:Resolve(player)
++	return arrival and arrival.format or nil
+@@ -55 +54 @@
+-	-- В команде не больше Party.MaxSize игроков (шаг 2.1 ДД). Лишний игрок получает отказ и играет в своей команде
+-	if player.UserId ~= hostUserId and guestCount(hostUserId) >= PartyConfig.MaxSize - 1 then
++	-- В команде не больше Party.MaxSize игроков (шаг 2.1 ДД). Лишний игрок получает отказ и играет в своей команде.
++	-- Веха 9: на сервере из лобби предел — число мест в доме формата (SeatLimit ставит LobbyLinkService)
++	if player.UserId ~= hostUserId and guestCount(hostUserId) >= (PartyService.SeatLimit or PartyConfig.MaxSize) - 1 then
+=== ServerScriptService.Server.Services.PlayerService (84 -> 90 lines)
+@@ -9 +9 @@
+-local DataService, PartyService, InventoryService, HouseService, DefenseService
++local DataService, PartyService, InventoryService, HouseService, DefenseService, LobbyLink
+@@ -18 +18 @@
++	LobbyLink = Loader.Get("LobbyLinkService")
+@@ -45 +46 @@
++	-- Веха 9: игра начинается с лобби (шаг 1.3 ДД). Сервер читает билет лобби; игрок без билета уходит в лобби.
++	-- Профиль ещё не загружен, поэтому его блокировка не мешает загрузке на следующем сервере
++	local arrival = LobbyLink:Resolve(player)
++	if arrival.redirect and LobbyLink:Redirect(player) then return end
+@@ -58 +63 @@
+-	-- Если игрок прилетел с другого сервера по «Зову о помощи» (шаг 5.4 ДД), переносим к защищающемуся участку
+-	local okJoin, joinData = pcall(function() return player:GetJoinData() end)
+-	local helpHost = okJoin and joinData and type(joinData.TeleportData) == "table" and tonumber(joinData.TeleportData.helpHost)
++	LobbyLink:QueueBeat() -- веха 9: лобби узнаёт, что дом занят
++	-- Если игрок прилетел с другого сервера по «Зову о помощи» (шаг 5.4 ДД), переносим к защищающемуся участку.
++	-- Веха 9: о помощнике сообщает его билет, а не TeleportData
++	local helpHost = arrival.helpHost
