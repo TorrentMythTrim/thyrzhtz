@@ -1,6 +1,6 @@
 # Milestone 9 — Lobby and co-op
 
-**Status: built and tested in Studio with one player; not complete.** Both places are saved, not published: lobby version 6, game place version 32. Nothing in this milestone has been run with two real players or in the published game, and the plan itself puts those checks in the published test game (items 2 and 8). Several numbers and rules below are drafts that wait for your decision.
+**Status: built and tested in Studio with one player; not complete.** Both places are saved, not published: lobby version 6, game place version 33. Nothing in this milestone has been run with two real players or in the published game, and the plan itself puts those checks in the published test game (items 2 and 8). Several numbers and rules below are drafts that wait for your decision.
 
 The two places, confirmed by place id before any edit:
 
@@ -16,7 +16,7 @@ The two places, confirmed by place id before any edit:
 - Baseline of the game place: 23 specs, 148 passed, 1 failed. The failure was in `AuditMonsters.spec` and did not repeat in three more runs of that spec.
 - All tests used `GS_ForceMemoryData = true`; no DataStore was read or written. The data schema and versions are unchanged.
 - Not published, start place not changed (and not looked up), no assets uploaded.
-- Game place version 31 is a throwaway save: it carried a test switch (`GS_LobbyStore`) for the Studio run described below. Version 32 is the same without it.
+- Game place version 31 is a throwaway save: it carried a test switch (`GS_LobbyStore`) for the Studio run described below. Version 32 is the same without it, and is the version every test above ran on. Version 33 rewords one comment in `TradeService`; no code changed.
 
 ## Decisions followed
 
@@ -100,7 +100,7 @@ None of these is recorded in the plans. Each is a draft I had to pick to make th
 - **Call for help between reserved servers.** The access-code path and the helper ticket have code and a unit test, and no run between two servers.
 - **The idle check in real time.** Nobody waited 15 minutes, and no real player was removed; the window's button was not clicked by hand (its remote was fired instead).
 - **Distance checks.** Trade (24 studs) and decoration (16 studs) were tested with the distance check switched off.
-- **Saving a trade to a real DataStore.** The two bags are two saved records. They change together in memory and are saved one after the other; a crash between the two saves was not tested and is not prevented.
+- **Saving a trade to a real DataStore.** The two bags are two saved records. They change together in memory and are then written by two separate saves started at the same moment; a crash between the two writes was not tested and cannot be ruled out.
 - **Real DataStore in general, phone layout and touch, more than one desktop size.**
 - **The look.** Blocks in the lobby, temporary interface.
 
@@ -132,4 +132,8 @@ These need both places published to the test experience, which this task must no
 
 ## Code in the repository
 
-The places are the source of truth. `studio-src/changes-m9.diff` records every line changed in the six edited game-place scripts, compared with the backup above (7,568 bytes, Adler-32 2462143991). The edited scripts are `Config.Game`, `Modules.Locale`, `Modules.Net`, `DefenseService`, `PartyService` and `PlayerService`.
+The places are the source of truth; the game is not built from the repository. Each copy below was checked against Studio by length and Adler-32 checksum after the final saves, and all match.
+
+- **Game place, new:** the nine scripts and two specs are under `studio-src/`, at their Studio paths (81,256 bytes): `Config/Coop`, `Locale/CoopStrings`, `Modules/Matchmaking`, `Services/AfkService`, `Services/DecorService`, `Services/LobbyLinkService`, `Services/TradeService`, `Controllers/CoopController`, `Controllers/TradeController`, `Tests/AuditLobbyLink.spec`, `Tests/AuditCoop.spec`.
+- **Game place, edited:** `studio-src/changes-m9.diff` records every line changed in the six edited scripts, compared with the backup above (7,568 bytes, Adler-32 2462143991). They are `Config.Game`, `Modules.Locale`, `Modules.Net`, `DefenseService`, `PartyService` and `PlayerService`.
+- **Lobby:** all 17 scripts are under `studio-src/lobby-place/` (74,137 bytes). The built blockout model is in the place only; `LobbyBuilder` rebuilds it.
