@@ -1,0 +1,41 @@
+	-- Аудит 14.11.2026: чужой участок, инструменты для сбора и полная сумка
+	it('M3 a bed on another plot cannot be used and nothing is consumed',function() fixture(function(profile,team,bed)
+		local other
+		for _,m in ipairs(workspace.Map.Plots:GetChildren()) do
+			if m:GetAttribute('OwnerHost')~=PS:GetHost(p) and m:FindFirstChild('Garden') then other=m.Garden:FindFirstChild('Bed_1') break end
+		end
+		expect(other~=nil).toBeTruthy()
+		IS:Give(p,'empty_bed',1);IS:SetHotbar(p,6,'empty_bed');IS:SelectSlot(p,6)
+		local n=IS:Count(p,'empty_bed')
+		p.Character:PivotTo(CFrame.new(other.Position+Vector3.new(0,3,0)))
+		expect(FS:Use(p,other)).toBe(false)
+		expect(IS:Count(p,'empty_bed')).toBe(n)
+		expect(other:GetAttribute('Built')==true).toBe(false)
+	end) end)
+	it('M3 harvest needs a sickle in hand and a basket in the bag; a full bag keeps the crop on the bed',function() fixture(function(profile,team,bed)
+		profile.inventory.items={basket=1,simple_sickle=1,empty_bed=1,spore_fly_agaric=1};profile.inventory.hotbar={}
+		team.garden.beds['3']=nil
+		p.Character:PivotTo(CFrame.new(bed.Position+Vector3.new(0,3,0)))
+		for _,id in ipairs({'empty_bed','spore_fly_agaric'}) do IS:SetHotbar(p,6,id);IS:SelectSlot(p,6);expect(FS:Use(p,bed)).toBe(true) end
+		local data=team.garden.beds['3']
+		data.progress=1;data.ready=true;data.mutation=nil
+		-- в руке корзина, а не серп
+		IS:SetHotbar(p,6,'basket');IS:SelectSlot(p,6)
+		expect(FS:Use(p,bed)).toBe(false);expect(data.ready).toBe(true)
+		-- серп в руке, но корзины нет
+		profile.inventory.items.basket=nil
+		IS:SetHotbar(p,6,'simple_sickle');IS:SelectSlot(p,6)
+		expect(FS:Use(p,bed)).toBe(false);expect(data.ready).toBe(true)
+		-- корзина есть, но в сумке нет места: гриб остаётся на грядке
+		profile.inventory.items.basket=1
+		profile.inventory.items.healing_potion=IS:FreeSlots(p)*10
+		expect(IS:FreeSlots(p)).toBe(0)
+		expect(FS:Use(p,bed)).toBe(false)
+		expect(data.ready).toBe(true);expect(data.species).toBe('fly_agaric')
+		expect(IS:Count(p,'mushroom_fly_agaric')).toBe(0)
+		-- место освободилось: гриб срезан и лежит в сумке
+		profile.inventory.items.healing_potion-=10
+		expect(FS:Use(p,bed)).toBe(true)
+		expect(IS:Count(p,'mushroom_fly_agaric')).toBe(1)
+		expect(data.species).toBe(nil)
+	end) end)

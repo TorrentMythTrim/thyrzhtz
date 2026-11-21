@@ -1,0 +1,455 @@
+=== ReplicatedStorage.Shared.Config.Economy (154 -> 168 lines)
+@@ -48 +48 @@
+-			scope = "shared", startLevel = 0, currency = "coins", baseCost = 90, growth = 1.65, maxLevel = 6,
++			scope = "shared", startLevel = 0, currency = "coins", baseCost = 90, growth = 1.65, maxLevel = 3,
+@@ -50 +50 @@
+-			desc = {en = "Crafts all 4 combat weapons (L1–L3) & empowers gear", ru = "Позволяет ковать все 4 боевых оружия (L1–L3)"},
++			desc = {en = "Crafts all 4 combat weapons (L1–L3)", ru = "Позволяет ковать все 4 боевых оружия (L1–L3)"},
+@@ -151 +151 @@
++	},
++	-- Числа эффектов улучшений, которые читают сервисы (веха 7). Меняются здесь, без правок кода
++	UpgradeEffects = {
++		GardenSoilWearCutPerLevel = 0.05, -- Сад: на столько меньше износ почвы при сборе за уровень сверх 1-го
++		TableBonusSporeChancePerLevel = 0.08, -- Алхимический стол: шанс лишней споры при удачном смешивании за уровень сверх 1-го
++		HouseHealPerSecondPerLevel = 3, -- Дом: лечение у своего дома, HP в секунду за уровень
++		TotemGateHpPerLevel = 50, -- Защитные тотемы: прибавка к прочности ворот за уровень
++	},
++	-- Опыт ранга за исследования (шаг 6.2 ДД): первая победа над видом монстра и первая найденная территория.
++	-- Платится один раз на профиль; 0 выключает награду
++	ExplorationXp = {monsterType = 15, eliteType = 45, territory = 40},
++	-- Территории для исследования: mapKey — зона из Config.Map с полями Center и Size
++	Territories = {
++		old_garden = {mapKey = "OldGarden", name = {en = "Old Garden", ru = "Старый сад"}},
+=== ReplicatedStorage.Shared.Config.Monsters (73 -> 116 lines)
+@@ -3 +3 @@
++-- Остальные 4 обычных и 2 элитных реализованы полностью (поведение — ServerStorage.Modules.MonsterBehaviors), но в спавн Акта 1 не входят:
++-- чтобы включить вид, добавь его id в Act1Regular / Act1Elite и в точки спавна MonsterService:PopulateOldGarden.
+@@ -38 +40 @@
+-		mist_double = {name = {en = "Mist Double", ru = "Туманный Двойник"}, hp = 60, damage = 10, speed = 16, lightWeakness = 1.5},
+-		crystal_tick = {name = {en = "Crystal Tick", ru = "Кристальный Клещ"}, hp = 30, damage = 3, speed = 20, latch = true},
+-		ash_hound = {name = {en = "Ash Hound", ru = "Пепельный Пёс"}, hp = 55, damage = 9, speed = 24, burnsBeds = true},
+-		void_cloak = {name = {en = "Void Cloak", ru = "Пустотный Плащ"}, hp = 45, damage = 14, speed = 16, teleports = true},
++		mist_double = {
++			name = {en = "Mist Double", ru = "Туманный Двойник"},
++			hp = 60, damage = 10, speed = 16, attackRange = 5, attackCooldown = 1.4,
++			lightWeakness = 1.5, copyRange = 40, abilityRange = 16, abilityCooldown = 6, abilityDamage = 12, abilityRadius = 7, abilityHeal = 15, bedDamage = 6,
++			coins = {6, 11}, dust = {4, 7}, xp = 20, model = "Monster_MistDouble",
++		},
++		crystal_tick = {
++			name = {en = "Crystal Tick", ru = "Кристальный Клещ"},
++			hp = 30, damage = 3, speed = 20, attackRange = 4, attackCooldown = 1.2,
++			latch = true, latchRange = 7, latchSlow = 0.45, latchTick = 1, shakePresses = 6, shakeWindow = 2.5, relatchCooldown = 5,
++			throwDistance = 7, throwStun = 1.5, bedDamage = 3,
++			coins = {4, 8}, dust = {3, 6}, xp = 14, model = "Monster_CrystalTick",
++		},
++		ash_hound = {
++			name = {en = "Ash Hound", ru = "Пепельный Пёс"},
++			hp = 55, damage = 9, speed = 24, attackRange = 5, attackCooldown = 1.1,
++			burnsBeds = true, trailSpacing = 4, trailSeconds = 4, trailRadius = 3, trailDamage = 3,
++			bedBurnRadius = 5, bedBurnSeconds = 3, bedBurnDamage = 6, bedDamage = 10,
++			coins = {7, 12}, dust = {4, 8}, xp = 20, model = "Monster_AshHound",
++		},
++		void_cloak = {
++			name = {en = "Void Cloak", ru = "Пустотный Плащ"},
++			hp = 45, damage = 14, speed = 16, attackRange = 5, attackCooldown = 2.4,
++			teleports = true, teleportRange = 30, teleportCooldown = 5, revealSeconds = 1, cloakTransparency = 0.75, bedDamage = 6,
++			coins = {8, 13}, dust = {5, 9}, xp = 22, model = "Monster_VoidCloak",
++		},
+@@ -56 +80 @@
+-		swarm_mother = {name = {en = "Swarm Mother", ru = "Мать Роя"}, hp = 450, damage = 15, speed = 10, poise = 150, maxNests = 10, nestBuildSeconds = 5},
+-		mold_gardener = {name = {en = "Mold Gardener", ru = "Садовник Плесени"}, hp = 500, damage = 12, speed = 11, poise = 160},
++		swarm_mother = {
++			name = {en = "Swarm Mother", ru = "Мать Роя"},
++			hp = 450, damage = 15, speed = 10, attackRange = 6.5, attackCooldown = 1.6,
++			poise = 150, maxNests = 10, nestBuildSeconds = 5, nestRadius = 14, interruptSeconds = 4, bedDamage = 12,
++			coins = {40, 62}, dust = {24, 38}, xp = 90, model = "Monster_SwarmMother",
++		},
++		mold_gardener = {
++			name = {en = "Mold Gardener", ru = "Садовник Плесени"},
++			hp = 500, damage = 12, speed = 11, attackRange = 6, attackCooldown = 1.7,
++			poise = 160, infectInterval = 3, infectRadius = 12, bedInfection = 14, bedDamage = 8,
++			blightStartRadius = 6, blightMaxRadius = 30, blightGrowth = 0.8, blightTick = 1, blightBaseDamage = 2, blightStackDamage = 1, blightMaxStacks = 12,
++			coins = {45, 68}, dust = {26, 40}, xp = 95, model = "Monster_MoldGardener",
++		},
+@@ -70 +105 @@
++		},
++	},
++	-- Порождения монстров: в счёт 10 + 5 видов не входят. Гнездо Матери Роя неподвижно и выпускает комаров
++	Summons = {
++		swarm_nest = {
++			name = {en = "Swarm Nest", ru = "Гнездо Роя"},
++			hp = 40, damage = 0, speed = 0, stationary = true, spawnInterval = 7, maxBrood = 1,
++			coins = {1, 2}, dust = {1, 2}, xp = 4, model = "Monster_SwarmNest",
+=== ReplicatedStorage.Shared.Config.Weather (16 -> 17 lines)
+@@ -10 +10 @@
+-		fog = {name = {en = "Fog", ru = "Туман"}, icon = "🌫️", weight = 10, visibility = 0.4, playerDamage = 0.9, monsterDamage = 1.1, waveChance = 0.15},
++		fog = {name = {en = "Fog", ru = "Туман"}, icon = "🌫️", weight = 10, visibility = 0.4, playerDamage = 0.9, monsterDamage = 1.1, waveChance = 0.15,
++			ghosts = {id = "mist_double", count = 2}}, -- призрачные враги Тумана (шаг 5.1 ДД); count = 0 их отключает
+=== ReplicatedStorage.Shared.Formulas.Growth (88 -> 94 lines)
+@@ -52 +52 @@
++-- Множитель износа почвы от уровня Сада: меньше на cutPerLevel за каждый уровень сверх 1-го, но не ниже 0.25
++function Growth.SoilWearMultiplier(gardenLevel, cutPerLevel)
++	return math.max(0.25, 1 - (cutPerLevel or 0) * math.max(0, (tonumber(gardenLevel) or 1) - 1))
++end
++
+@@ -53 +58 @@
+-function Growth.ApplyHarvestWear(bed)
++-- soilWearMult — множитель износа почвы от уровня Сада (веха 7); без него износ полный
++function Growth.ApplyHarvestWear(bed, soilWearMult)
+@@ -55 +61 @@
+-	bed.soil = math.clamp((bed.soil ~= nil and bed.soil or B.soil) - E.HarvestSoilLoss, 0, 100)
++	bed.soil = math.clamp((bed.soil ~= nil and bed.soil or B.soil) - math.floor(E.HarvestSoilLoss * (soilWearMult or 1) + 0.5), 0, 100)
+=== ReplicatedStorage.Shared.Locale.Strings (562 -> 574 lines)
+@@ -189 +189 @@
++		tick_latched = "A Crystal Tick latched onto you! Mash G to shake it off!",
++		tick_shaken_off = "You shook the Crystal Tick off!",
++		hud_shake = "Crystal Tick! Mash G — %d more",
++		gardener_blight = "The ground is blighted! Leave the mold or stop the Mold Gardener!",
+@@ -260 +264 @@
++		explore_monster = "New creature studied: %s (+%d rank XP)",
++		explore_territory = "New territory found: %s (+%d rank XP)",
+@@ -468 +474 @@
++		tick_latched = "Кристальный Клещ вцепился в тебя! Быстро жми G, чтобы сбросить!",
++		tick_shaken_off = "Ты сбросил Кристального Клеща!",
++		hud_shake = "Кристальный Клещ! Жми G — ещё %d",
++		gardener_blight = "Земля заражена! Выйди из плесени или останови Садовника Плесени!",
+@@ -539 +549 @@
++		explore_monster = "Изучен новый вид: %s (+%d опыта ранга)",
++		explore_territory = "Открыта новая территория: %s (+%d опыта ранга)",
+=== ReplicatedStorage.Shared.Modules.EconomySim (172 -> 186 lines)
+@@ -11 +11 @@
++local Monsters = require(Config.Monsters)
+@@ -37 +38 @@
++	local seenRegular, seenElite = 0, 0
+@@ -91 +93 @@
++
++		-- 2б) Исследования (Economy.ExplorationXp): Старый сад в первую минуту, новый обычный вид раз в 6 минут, элитный — раз в 30
++		local X = Economy.ExplorationXp
++		if minute == 1 then xp += X.territory end
++		if seenRegular < #Monsters.Act1Regular and minute % 6 == 1 then
++			seenRegular += 1
++			xp += X.monsterType
++		end
++		if seenElite < #Monsters.Act1Elite and minute % 30 == 0 then
++			seenElite += 1
++			xp += X.eliteType
++		end
+=== ServerScriptService.Server.Services.AlchemyService (390 -> 399 lines)
+@@ -13 +13 @@
++local Economy = require(Shared.Config.Economy)
++local bonusRng = Random.new()
+@@ -132 +134 @@
++-- Шанс лишней споры при удачном смешивании от уровня Алхимического стола (веха 7)
++function AlchemyService.BonusSporeChance(tableLevel)
++	return math.clamp(Economy.UpgradeEffects.TableBonusSporeChancePerLevel * math.max(0, (tonumber(tableLevel) or 1) - 1), 0, 1)
++end
++
+@@ -262 +269 @@
++		local sporeGain = Recipes.CraftSporeBonus
++		if bonusRng:NextNumber() < AlchemyService.BonusSporeChance(team.buildings and team.buildings.alchemy_table) then sporeGain += 1 end
+@@ -267 +276 @@
+-			projected[outSpore] = (projected[outSpore] or 0) + Recipes.CraftSporeBonus
++			projected[outSpore] = (projected[outSpore] or 0) + sporeGain
+@@ -283 +292 @@
+-			InventoryService:Give(player, outSpore, Recipes.CraftSporeBonus)
++			InventoryService:Give(player, outSpore, sporeGain)
+@@ -302 +311 @@
+-			sporeBonus = Recipes.CraftSporeBonus,
++			sporeBonus = sporeGain,
+=== ServerScriptService.Server.Services.CombatService (830 -> 832 lines)
+@@ -818 +818 @@
++		elseif action == "shake" then
++			MonsterService:ShakeOff(player)
+=== ServerScriptService.Server.Services.DefenseService (849 -> 874 lines)
+@@ -15 +15 @@
++local EconomyCfg = require(Shared.Config.Economy)
+@@ -76 +77 @@
++-- Прочность ворот с учётом уровня Защитных тотемов команды (веха 7: +TotemGateHpPerLevel за уровень)
++local function gateMaxHp(plotModel)
++	local host = plotModel and plotModel:GetAttribute("OwnerHost") or 0
++	local team = host ~= 0 and DataService and DataService:GetTeam(host) or nil
++	local lvl = team and team.buildings and tonumber(team.buildings.totems) or 0
++	return DefenseCfg.Gate.MaxHP + EconomyCfg.UpgradeEffects.TotemGateHpPerLevel * math.max(0, lvl)
++end
++
++-- Уровень тотемов вырос — ворота сразу получают прибавку; предел стал меньше (участок сменил команду) — прочность не выше нового предела
++local function refreshGateMax(plotModel, st)
++	local newMax = gateMaxHp(plotModel)
++	local oldMax = st.gateMax or DefenseCfg.Gate.MaxHP
++	if newMax ~= oldMax then
++		if st.gateHp > 0 then st.gateHp = math.clamp(st.gateHp + (newMax - oldMax), 1, newMax) end
++		st.gateMax = newMax
++	end
++	return newMax
++end
++
+@@ -81 +101 @@
+-			gateHp = DefenseCfg.Gate.MaxHP,
++			gateHp = gateMaxHp(plotModel),
++			gateMax = gateMaxHp(plotModel),
+@@ -119 +140 @@
+-	gate:SetAttribute("MaxHP", DefenseCfg.Gate.MaxHP)
++	gate:SetAttribute("MaxHP", st.gateMax or DefenseCfg.Gate.MaxHP)
+@@ -198 +219 @@
+-	if heldId == DefenseCfg.Gate.RepairItem and st.gateHp < DefenseCfg.Gate.MaxHP then
++	if heldId == DefenseCfg.Gate.RepairItem and st.gateHp < (st.gateMax or DefenseCfg.Gate.MaxHP) then
+@@ -200 +221 @@
+-			st.gateHp = math.min(DefenseCfg.Gate.MaxHP, st.gateHp + DefenseCfg.Gate.RepairAmount)
++			st.gateHp = math.min(st.gateMax or DefenseCfg.Gate.MaxHP, st.gateHp + DefenseCfg.Gate.RepairAmount)
+@@ -466 +487 @@
+-		InventoryService:AddCurrency(member, "coins", coins)
+-		InventoryService:AddCurrency(member, "sporeDust", dust)
++		InventoryService:AddCurrency(member, "coins", coins, "wave_reward:" .. grade)
++		InventoryService:AddCurrency(member, "sporeDust", dust, "wave_reward:" .. grade)
+@@ -469 +490 @@
+-			InventoryService:AddCurrency(member, "crystals", gDef.crystals)
++			InventoryService:AddCurrency(member, "crystals", gDef.crystals, "wave_reward:" .. grade)
+@@ -472 +493 @@
+-			InventoryService:AddCurrency(member, "starSeals", gDef.bloodMoonStarSeal)
++			InventoryService:AddCurrency(member, "starSeals", gDef.bloodMoonStarSeal, "wave_reward:blood_moon_gold")
+@@ -496 +517 @@
+-			InventoryService:AddCurrency(helper, "coins", hCoins)
+-			InventoryService:AddCurrency(helper, "sporeDust", hDust)
+-			InventoryService:AddCurrency(helper, "crystals", DefenseCfg.Rewards.HelperBonusCrystals)
++			InventoryService:AddCurrency(helper, "coins", hCoins, "wave_helper")
++			InventoryService:AddCurrency(helper, "sporeDust", hDust, "wave_helper")
++			InventoryService:AddCurrency(helper, "crystals", DefenseCfg.Rewards.HelperBonusCrystals, "wave_helper")
+@@ -536 +557 @@
++		if plotModel.Parent and st.gateMax ~= gateMaxHp(plotModel) then
++			refreshGateMax(plotModel, st)
++			self:SyncGateVisual(plotModel)
++		end
+=== ServerScriptService.Server.Services.DevService (424 -> 424 lines)
+@@ -63 +63 @@
+-	if not InventoryService:AddCurrency(player, id, amount) then return false end
++	if not InventoryService:AddCurrency(player, id, amount, "dev_panel") then return false end
+=== ServerScriptService.Server.Services.EconomyService (523 -> 584 lines)
+@@ -13 +13 @@
++local MapCfg = require(Shared.Config.Map)
++local MonstersCfg = require(Shared.Config.Monsters)
+@@ -18 +20 @@
++local LOOP_SECONDS = 2 -- шаг фонового цикла: ранги, броня, лечение у дома, исследование территорий
+@@ -127 +130 @@
++-- Опыт ранга за исследования (шаг 6.2 ДД): первая победа над видом монстра и первая найденная территория.
++-- Платится один раз на профиль; порождения монстров (Monsters.Summons) видами не считаются
++function EconomyService:Explore(player, kind, id, info)
++	local p = DataService:GetProfile(player)
++	local listKey = kind == "monster" and "seenMonsters" or (kind == "territory" and "seenTerritories" or nil)
++	if not (p and listKey and type(id) == "string") then return false, 0 end
++	if kind == "monster" and MonstersCfg.Summons and MonstersCfg.Summons[id] then return false, 0 end
++	p.stats = p.stats or {}
++	local seen = p.stats[listKey] or {}
++	p.stats[listKey] = seen
++	if seen[id] then return false, 0 end
++	seen[id] = true
++	local X = Economy.ExplorationXp
++	local xp = kind == "territory" and X.territory or (info and info.elite and X.eliteType or X.monsterType)
++	xp = math.floor(tonumber(xp) or 0)
++	if xp > 0 then
++		self:AddXp(player, xp)
++		local shown = info and info.name and Locale.Name(langOf(player), info.name) or id
++		Net.Fire(player, "Notify", kind == "monster" and "explore_monster" or "explore_territory", shown, xp)
++		PlayerService:Push(player)
++	end
++	return true, xp
++end
++
++-- Игрок впервые вошёл в территорию из Economy.Territories (прямоугольник зоны из Config.Map)
++function EconomyService:CheckTerritories(player)
++	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
++	if not root then return end
++	for id, t in pairs(Economy.Territories) do
++		local zone = MapCfg[t.mapKey]
++		if zone and math.abs(root.Position.X - zone.Center.X) <= zone.Size.X / 2 and math.abs(root.Position.Z - zone.Center.Y) <= zone.Size.Y / 2 then
++			self:Explore(player, "territory", id, {name = t.name})
++		end
++	end
++end
++
++-- Лечение у своего Дома за один шаг цикла: HouseHealPerSecondPerLevel HP в секунду за уровень Дома
++function EconomyService.HouseHealPerTick(houseLevel)
++	return math.max(0, tonumber(houseLevel) or 1) * Economy.UpgradeEffects.HouseHealPerSecondPerLevel * LOOP_SECONDS
++end
++
+@@ -223 +267 @@
+-		InventoryService:AddCurrency(player, "sporeDust", dust, "press_dust:" .. itemId)
++		if not InventoryService:AddCurrency(player, "sporeDust", dust, "press_dust:" .. itemId) then
++			-- пыль не зачислилась — возвращаем гриб, чтобы он не пропал
++			InventoryService:Give(player, itemId, 1)
++			return false, "credit_failed"
++		end
+@@ -263 +311 @@
+-	InventoryService:AddCurrency(player, "coins", -rec.coins, "forge:" .. rec.id)
+-	InventoryService:AddCurrency(player, "sporeDust", -rec.sporeDust, "forge:" .. rec.id)
++	if not InventoryService:AddCurrency(player, "coins", -rec.coins, "forge:" .. rec.id) then return false, "not_enough" end
++	if not InventoryService:AddCurrency(player, "sporeDust", -rec.sporeDust, "forge:" .. rec.id) then
++		InventoryService:AddCurrency(player, "coins", rec.coins, "forge_rollback:" .. rec.id)
++		return false, "not_enough"
++	end
+@@ -286 +337 @@
+-	InventoryService:Give(player, offer.id, offer.count)
++	if not InventoryService:Give(player, offer.id, offer.count) then
++		-- товар не выдан — монеты возвращаются
++		InventoryService:AddCurrency(player, "coins", offer.coins, "shop_refund:" .. offer.id)
++		Net.Fire(player, "Notify", "farm_bag_full")
++		return false, "bag_full"
++	end
+@@ -373 +429 @@
+-		InventoryService:Give(player, offer.itemId, offer.count)
++		if not InventoryService:Give(player, offer.itemId, offer.count) then
++			InventoryService:AddCurrency(player, "starSeals", offer.seals, "seal_refund:" .. offer.id)
++			Net.Fire(player, "Notify", "farm_bag_full")
++			return false, "bag_full"
++		end
+@@ -492 +552 @@
+-		task.wait(2)
++		task.wait(LOOP_SECONDS)
+@@ -504 +564 @@
++					self:CheckTerritories(player)
+@@ -513 +574 @@
+-							CombatService:HealPlayer(player, hLvl * 3)
++							CombatService:HealPlayer(player, EconomyService.HouseHealPerTick(hLvl))
+=== ServerScriptService.Server.Services.FarmService (679 -> 683 lines)
+@@ -594 +594 @@
+-	Growth.ApplyHarvestWear(data)
++	-- Сад (веха 7): чем выше уровень, тем меньше сбор урожая изнашивает почву
++	local wearHost = PartyService:GetHost(player)
++	local wearTeam = wearHost and DataService:GetTeam(wearHost)
++	local wearLvl = wearTeam and wearTeam.garden and tonumber(wearTeam.garden.level) or 1
++	Growth.ApplyHarvestWear(data, Growth.SoilWearMultiplier(wearLvl, Economy.UpgradeEffects.GardenSoilWearCutPerLevel))
+=== ServerScriptService.Server.Services.IndexService (192 -> 192 lines)
+@@ -170 +170 @@
+-		InventoryService:AddCurrency(player, cur, amount)
++		InventoryService:AddCurrency(player, cur, amount, "index_milestone:" .. tostring(m.id))
+=== ServerScriptService.Server.Services.MonsterService (1040 -> 1070 lines)
+@@ -20 +20 @@
++-- Поведение видов ростера вне спавна Акта 1 (Двойник, Клещ, Пёс, Плащ, Мать Роя, Садовник Плесени)
++local Behaviors = require(ServerStorage.Modules.MonsterBehaviors)
+@@ -37 +39 @@
++	if MonstersCfg.Summons and MonstersCfg.Summons[id] then return MonstersCfg.Summons[id], false end
+@@ -185 +188 @@
++	Behaviors.OnSpawn(mob)
+@@ -204 +208 @@
++			Behaviors.OnRemoved(mob)
+@@ -445 +450 @@
+-		base = hit.base or 0,
++		base = (hit.base or 0) * Behaviors.HitMultiplier(mob, hit),
+@@ -454 +459 @@
++	if dmg > 0 then Behaviors.OnHit(mob, hit, now) end
+@@ -520 +526 @@
++	Behaviors.OnRemoved(mob)
+@@ -552 +559 @@
+-		InventoryService:AddCurrency(killer, "coins", Rewards.Apply(coins, pSize))
+-		InventoryService:AddCurrency(killer, "sporeDust", Rewards.Apply(dust, pSize))
++		InventoryService:AddCurrency(killer, "coins", Rewards.Apply(coins, pSize), "kill:" .. tostring(mob.id))
++		InventoryService:AddCurrency(killer, "sporeDust", Rewards.Apply(dust, pSize), "kill:" .. tostring(mob.id))
+@@ -559 +566 @@
++			-- веха 7: первая победа над видом — опыт ранга за исследование (шаг 6.2 ДД)
++			local okEco, Eco = pcall(Loader.Get, "EconomyService")
++			if okEco and Eco and Eco.Explore then
++				Eco:Explore(killer, "monster", mob.id, {elite = mob.elite, name = mob.def.name})
++			end
+@@ -725 +737 @@
+-		InventoryService:AddCurrency(player, "coins", 45)
+-		InventoryService:AddCurrency(player, "sporeDust", 25)
++		InventoryService:AddCurrency(player, "coins", 45, "carrier_stash")
++		InventoryService:AddCurrency(player, "sporeDust", 25, "carrier_stash")
+@@ -740 +752 @@
+-	-- Лунный Жнец исчезает с наступлением дня, если рядом никто не дерётся
+-	if mob.def.nightOnly and DayNight.Current().id ~= "night" and next(mob.engagedPlayers) == nil then
++	-- Лунный Жнец исчезает с наступлением дня, если рядом никто не дерётся (под Кровавой Луной остаётся и днём)
++	if mob.def.nightOnly and DayNight.Current().id ~= "night" and WeatherService:Get() ~= "blood_moon" and next(mob.engagedPlayers) == nil then
+@@ -830 +842 @@
++	-- Виды вне спавна Акта 1: их механика либо целиком заменяет шаг (true), либо дополняет общий ИИ
++	if Behaviors.Step(mob, dt, now) then return end
++
+@@ -1007 +1022 @@
++-- Убрать одного монстра без наград (гнёзда погибшей Матери Роя)
++function MonsterService:Remove(mob)
++	if mobs[mob.uid] == mob then mobs[mob.uid] = nil end
++	mob.hp = 0
++	Behaviors.OnRemoved(mob)
++	if mob.model then mob.model:Destroy() end
++end
++
++-- Нажатие клавиши сброса Кристального Клеща (G)
++function MonsterService:ShakeOff(player)
++	return Behaviors.ShakeOff(player)
++end
++
+@@ -1017 +1045 @@
++	Behaviors.Init({MonsterService = self, CombatService = CombatService, DataService = DataService, DefenseService = DefenseService})
+@@ -1032 +1061 @@
++		pcall(Behaviors.Sweep, now)
+=== ServerScriptService.Server.Services.WeatherService (275 -> 289 lines)
+@@ -77 +77 @@
++	-- Монстры прошлой погоды (слизни Дождя, призраки Тумана) уходят вместе с ней, если с ними никто не дерётся:
++	-- иначе каждый новый дождь добавлял бы ещё двух слизней к неубитым
++	if MonsterService then
++		for _, mob in ipairs(MonsterService:GetAll()) do
++			if mob.zone == "weather" and next(mob.engagedPlayers) == nil then MonsterService:Remove(mob) end
++		end
++	end
+@@ -104 +111 @@
++		-- Призрачные враги Тумана (шаг 5.1 ДД): стерегут скрытую тропу к сундуку
++		local ghosts = Weather.Types.fog.ghosts
++		if ghosts and MonsterService then
++			for i = 1, ghosts.count or 0 do
++				MonsterService:Spawn(ghosts.id, Vector3.new(-125 - i * 22, 0.3, -30 + (i % 2) * 8), {zone = "weather", leash = 60})
++			end
++		end
+@@ -134 +148 @@
+-			InventoryService:AddCurrency(player, "coins", 40)
+-			InventoryService:AddCurrency(player, "sporeDust", 25)
++			InventoryService:AddCurrency(player, "coins", 40, "fog_chest")
++			InventoryService:AddCurrency(player, "sporeDust", 25, "fog_chest")
+=== ServerStorage.Modules.CombatModels (403 -> 411 lines)
+@@ -376 +376 @@
++-- Виды ростера вне спавна Акта 1 и гнездо Матери Роя — в отдельном модуле
++for name, fn in pairs(require(ServerStorage.Modules.MonsterRosterModels)({
++	part = part, ball = ball, cylinder = cylinder, newModel = newModel, makeRoot = makeRoot, addEyes = addEyes, rgb = rgb,
++})) do
++	Monsters[name] = fn
++end
++CM.MonsterBuilders = Monsters
++
+=== ServerStorage.Tests.TestRunner (52 -> 53 lines)
+@@ -24 +24 @@
++	local exact = only and folder:FindFirstChild(only) -- точное имя спека важнее совпадения по части имени: "Combat.spec" не запускает ещё и "AuditCombat.spec"
+@@ -25 +26 @@
+-		if spec:IsA("ModuleScript") and string.match(spec.Name, "%.spec$") and (only == nil or string.find(spec.Name, only, 1, true)) then
++		if spec:IsA("ModuleScript") and string.match(spec.Name, "%.spec$") and (only == nil or (exact ~= nil and spec == exact) or (exact == nil and string.find(spec.Name, only, 1, true) ~= nil)) then
+=== StarterPlayer.StarterPlayerScripts.Controllers.CombatController (424 -> 439 lines)
+@@ -86 +86 @@
++		elseif input.KeyCode == Enum.KeyCode.G then
++			Net.Event("CombatAction"):FireServer("shake")
+@@ -118 +120 @@
++	player:GetAttributeChangedSignal("TickLatched"):Connect(function() self:RenderHud() end)
+@@ -207 +210 @@
++
++	-- Кристальный Клещ на спине: подсказка «жми G», она же кнопка для телефона
++	self.ShakeBtn = make("TextButton", {
++		Name = "ShakeBtn", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -164),
++		Size = UDim2.fromOffset(280, 34), BackgroundColor3 = Ui.DARK, BackgroundTransparency = 0.1, Visible = false,
++		Text = "", TextColor3 = GOLD, TextSize = 15, Font = Enum.Font.GothamBold,
++	}, gui)
++	make("UICorner", {CornerRadius = UDim.new(0, 8)}, self.ShakeBtn)
++	self.ShakeBtn.Activated:Connect(function() Net.Event("CombatAction"):FireServer("shake") end)
+@@ -257 +269 @@
++	local latch = player:GetAttribute("TickLatched")
++	self.ShakeBtn.Visible = latch ~= nil
++	if latch then self.ShakeBtn.Text = State:T("hud_shake", latch) end
+@@ -319 +334 @@
+-	local def = id and (MonstersCfg.Regular[id] or MonstersCfg.Elite[id])
++	local def = id and (MonstersCfg.Regular[id] or MonstersCfg.Elite[id] or (MonstersCfg.Summons and MonstersCfg.Summons[id]))
+=== StarterPlayer.StarterPlayerScripts.Controllers.DevPanelController (287 -> 296 lines)
+@@ -19 +19 @@
++-- остальные виды ростера (вне спавна Акта 1) тоже можно вызвать из панели
++for _, group in ipairs({MonstersCfg.Regular, MonstersCfg.Elite}) do
++	local rest = {}
++	for id in pairs(group) do
++		if not table.find(mobIds, id) then table.insert(rest, id) end
++	end
++	table.sort(rest)
++	for _, id in ipairs(rest) do table.insert(mobIds, id) end
++end

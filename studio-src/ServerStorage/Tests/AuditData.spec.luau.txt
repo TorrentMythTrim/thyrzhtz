@@ -1,0 +1,133 @@
+		local p = {UserId = userId, Name = "AuditBot" .. userId, DisplayName = "AuditBot", Parent = workspace, attrs = {}}
+		function p:Kick(message) self.kicked = message or true end
+		function p:SetAttribute(key, value) self.attrs[key] = value end
+		function p:GetAttribute(key) return self.attrs[key] end
+		return p
+	end
+	local function read(store, key)
+		return store:GetAsync(key, fresh)
+	end
+	-- Сохранение при выходе идёт в фоне: ждём, пока с записи снимут блокировку
+	local function readReleased(store, key)
+		local raw
+		for _ = 1, 40 do
+			raw = read(store, key)
+			if raw and raw.meta and raw.meta.lock == nil then break end
+			task.wait(0.25)
+		end
+		return raw
+	end
+	local function wipe()
+		for _, id in ipairs({K_LOCK, K_REJOIN, K_PARTY, K_OTHER}) do
+			pcall(function() teamStore:RemoveAsync("t_" .. id) end)
+		end
+		pcall(function() profileStore:RemoveAsync("u_" .. USER) end)
+	end
+	-- Чужую блокировку в тестах ждём недолго; настройки возвращаются в конце
+	local attempts, retryDelay = Cfg.LoadAttempts, Cfg.LoadRetryDelay
+	Cfg.LoadAttempts, Cfg.LoadRetryDelay = 1, 0.2
+	wipe()
+	it("M1 profile: saved on leave, loaded on rejoin, lock released, new record in the current schema", function()
+		local A = server()
+		local p1 = fakePlayer(USER)
+		local d = A:LoadProfile(p1)
+		expect(d ~= nil).toBeTruthy()
+		expect(d.stats.sessions).toBe(1)
+		local raw = read(profileStore, "u_" .. USER)
+		expect(raw.meta.lock.session).toBe(A.SessionId)
+		expect(raw.meta.schema).toBe(Schema.ProfileVersion)
+		d.currencies.coins = 77
+		d.inventory.items.basket = 1
+		expect(A:ReleaseProfile(p1)).toBe(true)
+		expect(A:GetProfile(p1)).toBe(nil)
+		raw = read(profileStore, "u_" .. USER)
+		expect(raw.meta.lock).toBe(nil)
+		expect(raw.data.currencies.coins).toBe(77)
+		local B = server()
+		local p2 = fakePlayer(USER)
+		local d2 = B:LoadProfile(p2)
+		expect(d2 ~= nil).toBeTruthy()
+		expect(d2.currencies.coins).toBe(77)
+		expect(d2.inventory.items.basket).toBe(1)
+		expect(d2.stats.sessions).toBe(2)
+		expect(B:ReleaseProfile(p2)).toBe(true)
+	end)
+	it("M1 session lock: a second server cannot open or overwrite a held record, a stale lock expires", function()
+		local A, B = server(), server()
+		expect(A.SessionId ~= B.SessionId).toBeTruthy()
+		local ta = A:LoadTeam(K_LOCK)
+		expect(ta ~= nil).toBeTruthy()
+		ta.village.restoration = 7
+		local tb, why = B:LoadTeam(K_LOCK)
+		expect(tb).toBe(nil)
+		expect(why).toBe("locked")
+		expect(A:SaveNow(nil, K_LOCK).team).toBe(true)
+		A:ReleaseTeam(K_LOCK)
+		tb = B:LoadTeam(K_LOCK)
+		expect(tb ~= nil).toBeTruthy()
+		expect(tb.village.restoration).toBe(7)
+		-- «Сервер» B упал: его блокировка устарела, запись забирает A. Запоздалое сохранение B ничего не перезаписывает
+		teamStore:UpdateAsync("t_" .. K_LOCK, function(old)
+			old.meta.lock.time = os.time() - Cfg.LockExpireSeconds - 5
+			return old
+		end)
+		ta = A:LoadTeam(K_LOCK)
+		expect(ta ~= nil).toBeTruthy()
+		tb.village.restoration = 99
+		expect(B:SaveNow(nil, K_LOCK).team).toBe(false)
+		local raw = read(teamStore, "t_" .. K_LOCK)
+		expect(raw.data.village.restoration).toBe(7)
+		expect(raw.meta.lock.session).toBe(A.SessionId)
+		A:ReleaseTeam(K_LOCK)
+	end)
+	it("M1 quick rejoin on the same server loads what was saved on leave", function()
+		local A = server()
+		expect(A:LoadTeam(K_REJOIN) ~= nil).toBeTruthy()
+		for round = 1, 3 do
+			A:GetTeam(K_REJOIN).village.restoration = 100 + round
+			task.spawn(function() A:ReleaseTeam(K_REJOIN) end)
+			local again = A:LoadTeam(K_REJOIN)
+			expect(again ~= nil).toBeTruthy()
+			expect(again.village.restoration).toBe(100 + round)
+		end
+		A:ReleaseTeam(K_REJOIN)
+		local raw = read(teamStore, "t_" .. K_REJOIN)
+		expect(raw.data.village.restoration).toBe(103)
+		expect(raw.meta.lock).toBe(nil)
+	end)
+	it("M1 team record: shared inside a party of up to 4, independent between teams", function()
+		local DS = require(ctx.shared.Modules.Loader).Get("DataService")
+		local PS = require(Services.PartyService:Clone())
+		PS:Init()
+		local guests = {}
+		for i = 1, 4 do guests[i] = fakePlayer(K_PARTY - 100 - i) end
+		for i = 1, 3 do expect(PS:Join(guests[i], K_PARTY)).toBe(true) end
+		local ok, why = PS:Join(guests[4], K_PARTY)
+		expect(ok).toBe(false)
+		expect(why).toBe("full")
+		expect(PS:GetHost(guests[4])).toBe(nil)
+		local host = fakePlayer(K_PARTY)
+		expect(PS:Join(host, K_PARTY)).toBe(true) -- место хоста всегда свободно
+		expect(PS:GetSize(host)).toBe(Party.MaxSize)
+		local stranger = fakePlayer(K_OTHER)
+		expect(PS:Join(stranger, K_OTHER)).toBe(true)
+		local team, otherTeam = DS:GetTeam(K_PARTY), DS:GetTeam(K_OTHER)
+		expect(team ~= nil and otherTeam ~= nil and team ~= otherTeam).toBeTruthy()
+		team.village.restoration = 55
+		expect(otherTeam.village.restoration).toBe(0)
+		local n = 0
+		for _ in pairs(team.members) do n += 1 end
+		expect(n).toBe(Party.MaxSize)
+		for _, p in ipairs({guests[1], guests[2], guests[3], stranger}) do PS:Leave(p) end
+		expect(DS:GetTeam(K_PARTY) ~= nil).toBeTruthy() -- хост ещё в игре: запись загружена
+		expect(DS:GetTeam(K_OTHER)).toBe(nil) -- из второй команды все вышли: запись выгружена
+		PS:Leave(host)
+		expect(DS:GetTeam(K_PARTY)).toBe(nil)
+		local raw = readReleased(teamStore, "t_" .. K_PARTY)
+		expect(raw.data.village.restoration).toBe(55)
+		expect(raw.meta.lock).toBe(nil)
+		readReleased(teamStore, "t_" .. K_OTHER)
+	end)
+	Cfg.LoadAttempts, Cfg.LoadRetryDelay = attempts, retryDelay
+	wipe()
+end

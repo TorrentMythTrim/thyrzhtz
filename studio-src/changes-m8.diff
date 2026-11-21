@@ -1,0 +1,51 @@
+=== ReplicatedStorage.Shared.Config.Monsters (116 -> 127 lines)
+@@ -109 +109 @@
++		-- веха 8: босс Акта 1 и его наросты (шаг 7.4 ДД). Поведение — в BossService. Награда за босса не решена, поэтому её нет
++		rot_stump = {
++			name = {en = "Rotten Stump-Lord", ru = "Гнилой Пневар"}, boss = true,
++			hp = 900, damage = 0, speed = 0, stationary = true,
++			coins = {0, 0}, dust = {0, 0}, xp = 0, model = "Boss_RotStump",
++		},
++		rot_growth = {
++			name = {en = "Infected Growth", ru = "Заражённый нарост"},
++			hp = 120, damage = 0, speed = 0, stationary = true,
++			coins = {0, 0}, dust = {0, 0}, xp = 0, model = "Boss_RotGrowth",
++		},
+=== ReplicatedStorage.Shared.Modules.Locale (28 -> 34 lines)
+@@ -4 +4 @@
++-- веха 8: тексты Акта 1 лежат в отдельном модуле и добавляются к общим
++for lang, extra in pairs(require(script.Parent.Parent.Locale.Act1Strings)) do
++	Strings[lang] = Strings[lang] or {}
++	for key, text in pairs(extra) do Strings[lang][key] = text end
++end
++
+=== ReplicatedStorage.Shared.Modules.Net (80 -> 82 lines)
+@@ -26 +26 @@
++	"Act1Action",          -- клиент -> сервер: принять и сдать задание старосты (веха 8)
++	"Act1Event",           -- сервер -> клиенту: окно старосты и найденный фрагмент лора (веха 8)
+=== ServerScriptService.Server.Services.MonsterService (1070 -> 1075 lines)
+@@ -572 +572 @@
++		-- веха 8: победа идёт в счёт заданий старосты
++		local okQuest, Quest = pcall(Loader.Get, "QuestService")
++		if okQuest and Quest and Quest.OnMonsterKilled then
++			Quest:OnMonsterKilled(killer, mob)
++		end
+=== ServerStorage.Modules.MonsterBehaviors (623 -> 637 lines)
+@@ -516 +516 @@
++-- Milestone 8: another module can attach its own hooks to a monster id instead of growing this file
++-- (BossService does it for the Act 1 boss). hooks: OnSpawn(mob), Step(mob, dt, now) -> true to replace the
++-- common AI, HitMultiplier(mob, hit) -> number
++local extensions = {}
++function Behaviors.Extend(id, hooks)
++	extensions[id] = hooks
++end
++
+@@ -546 +554 @@
++	local ext = extensions[id]
++	if ext and ext.OnSpawn then ext.OnSpawn(mob) end
+@@ -550 +560 @@
++	local ext = extensions[mob.id]
++	if ext and ext.Step then return ext.Step(mob, dt, now) == true end
+@@ -556 +568 @@
++	local ext = extensions[mob.id]
++	if ext and ext.HitMultiplier then return ext.HitMultiplier(mob, hit) end

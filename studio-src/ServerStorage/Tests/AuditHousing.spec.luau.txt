@@ -1,0 +1,79 @@
+-- Веха 2 «Карта-заготовка и дома»: раскладки участков, выдача и освобождение домов, книга исследований.
+-- Только в игре (ctx.live). Тесты возвращают профиль и дома в исходное состояние (аудит 14.11.2026)
+return function(it,expect,ctx)
+	if not ctx.live then return end
+	local L=require(ctx.shared.Modules.Loader)
+	local HS=L.Get('HouseService')
+	local IS=L.Get('InventoryService')
+	local PS=L.Get('PartyService')
+	local DS=L.Get('DataService')
+	local p=game.Players:GetPlayers()[1]
+	it('M2 layouts: solo20 duo10 trio6 quartet5; assignment retained',function()
+		for _,a in ipairs({{'solo',20,1},{'duo',10,2},{'trio',6,3},{'quartet',5,4}}) do
+			expect(HS:SetFormat(a[1])).toBe(true)
+			expect(#workspace.Map.Plots:GetChildren()).toBe(a[2])
+			local plot=HS:GetPlot(p)
+			expect(plot~=nil and plot.capacity==a[3]).toBeTruthy()
+			expect(plot.model:GetAttribute('OwnerHost')).toBe(PS:GetHost(p))
+		end
+		HS:SetFormat('solo')
+	end)
+	it('M2 house releases and reassigns without duplicate ownership',function()
+		local host=PS:GetHost(p)
+		local plot=HS:GetPlot(p)
+		HS:Release(host)
+		expect(plot.model:GetAttribute('OwnerHost')).toBe(0)
+		expect(HS:GetPlot(p)).toBe(nil)
+		expect(HS:Settle(p)~=nil).toBeTruthy()
+	end)
+	it('M2 book is personal, nonstacking, takes no inventory or hotbar slot',function()
+		local profile=DS:GetProfile(p)
+		local had=profile.inventory.items.research_book
+		local ok,err=pcall(function()
+			profile.inventory.items.research_book=nil
+			local plot=HS:GetPlot(p)
+			local used=IS:UsedSlots(p)
+			expect(HS:TakeBook(p,plot)).toBe(true)
+			expect(IS:Count(p,'research_book')).toBe(1)
+			expect(IS:UsedSlots(p)).toBe(used)
+			expect(HS:TakeBook(p,plot)).toBe(false)
+			expect(IS:Count(p,'research_book')).toBe(1)
+			expect(IS:SetHotbar(p,1,'research_book')).toBe(false)
+			for _,id in pairs(profile.inventory.hotbar) do expect(id~='research_book').toBeTruthy() end
+		end)
+		-- книга возвращается на стол или остаётся у игрока — как было до теста
+		profile.inventory.items.research_book=had
+		L.Get('PlayerService'):Push(p)
+		if not ok then error(err,0) end
+	end)
+	it('M2 each team gets its own free house, a full server has none left, leaving frees one',function()
+		local mine=HS:GetPlot(p)
+		local total=#workspace.Map.Plots:GetChildren()
+		local seen={[mine.model]=true}
+		local hosts={}
+		local ok,err=pcall(function()
+			for i=1,total-1 do
+				local host=-7000-i
+				local plot=HS:Assign(host)
+				table.insert(hosts,host)
+				expect(plot~=nil).toBeTruthy()
+				expect(seen[plot.model]).toBe(nil)
+				seen[plot.model]=true
+				expect(plot.model:GetAttribute('OwnerHost')).toBe(host)
+				expect(HS:Assign(host)).toBe(plot)
+			end
+			expect(HS:Assign(-7999)).toBe(nil)
+			HS:Release(hosts[1])
+			table.insert(hosts,-7999)
+			expect(HS:Assign(-7999)~=nil).toBeTruthy()
+		end)
+		for _,h in ipairs(hosts) do HS:Release(h) end
+		if not ok then error(err,0) end
+		expect(HS:GetPlot(p)).toBe(mine)
+		local owned=0
+		for _,m in ipairs(workspace.Map.Plots:GetChildren()) do
+			if (m:GetAttribute('OwnerHost') or 0)~=0 then owned+=1 end
+		end
+		expect(owned).toBe(1)
+	end)
+end
