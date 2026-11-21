@@ -16,7 +16,7 @@ The two places, confirmed by place id before any edit:
 - Baseline of the game place: 23 specs, 148 passed, 1 failed. The failure was in `AuditMonsters.spec` and did not repeat in three more runs of that spec.
 - All tests used `GS_ForceMemoryData = true`; no DataStore was read or written. The data schema and versions are unchanged.
 - Not published, start place not changed (and not looked up), no assets uploaded.
-- Game place version 31 is a throwaway save: it carried a test switch (`GS_LobbyStore`) for the Studio run described below. Version 32 is the same without it, and is the version every test above ran on. Version 33 rewords one comment in `TradeService`; no code changed.
+- Game place version 31 is a throwaway save: it carried a test switch (`GS_LobbyStore`) for the Studio run described below. Version 32 is the same without it. Version 33 rewords one comment in `TradeService`; no code changed, and the full suite was run again on it with the same result.
 
 ## Decisions followed
 
@@ -55,9 +55,11 @@ The other parts of plan item 4 (shared garden, shared defence, the team raid, sh
 | Where | Result |
 | --- | --- |
 | Lobby, `Lobby.spec` | 9 passed, 0 failed (three runs, the last one on saved version 6) |
-| Game place, all 25 specs | 160 passed, 0 failed (before the last spec was added: 24 specs, 155 passed, 0 failed) |
+| Game place, all 25 specs | 160 passed, 0 failed, twice: before the final saves and again on the final version 33 (before the last spec was added: 24 specs, 155 passed, 0 failed) |
 | of which `AuditLobbyLink.spec` (new) | 6 passed |
 | of which `AuditCoop.spec` (new) | 5 passed, run twice in one session |
+
+Per-spec numbers, the names of the new tests and the server logs of the one-player runs are in [M9-test-results.md](M9-test-results.md).
 
 What the new game-place specs cover:
 
@@ -71,7 +73,7 @@ Other players in these specs are stand-ins (tables), and time is passed in rathe
 A Studio play session follows a teleport into the last saved version of the target place, so these ran across the two places, with one client:
 
 1. **Lobby → game with a ticket in MemoryStore.** With the store switched to MemoryStore in both places, the lobby's own `MatchService:Launch` sent the one player as format `duo`. The party rule was bypassed on purpose for this run, so that the result differs from the solo default. The game server logged `[LobbyLink] server studio: format duo from the lobby` and `[House] раскладка duo: домов 10, мест в доме 2`. A probe on that server passed 3 of 3: arrival source `ticket`, format `duo`, seat limit 2; the ticket was gone after use; the server's entry in the lobby list showed 10 houses, 9 free, 1 player, no held houses, and the search the lobby uses found it.
-2. **Game → lobby.** The "Return to the lobby" action saved the player, freed the house and arrived in the lobby place.
+2. **Game → lobby.** The "Return to the lobby" action saved the player and freed the house, and the session arrived in the lobby place. The lobby's saved version at that moment was still the empty version 5, so the lobby's own scripts did not run on that arrival.
 3. **Idle window on the real client.** With the player's last input back-dated, the server's own loop showed the window ("Don't sleep!", countdown, "I'm awake"); the awake action was accepted and the player stayed.
 4. Earlier in the milestone, before the ticket change: a solo party set out from the lobby panel and arrived in the game place; the panel refused an incomplete party.
 
@@ -96,7 +98,7 @@ None of these is recorded in the plans. Each is a draft I had to pick to make th
 ## Not verified, and what it would take
 
 - **Two or more real players.** Inviting between real clients, a party of 2–4 arriving on one server in one house with one team record, the trade window between two clients, decoration by two team-mates, seat limits with real players. Needs several clients; all of it ran only with stand-ins.
-- **The published game.** Real reserved servers and access codes, teleports between places, the redirect of a direct join (it never happens in Studio), several servers in the list, servers filling house by house, entries expiring in real time, retry after a teleport that did not start.
+- **The published game.** Real reserved servers and access codes, teleports between places, the redirect of a direct join (it never happens in Studio), several servers in the list, servers filling house by house, entries expiring in real time, retry after a teleport that did not start, the lobby greeting a player who really came back from a game server.
 - **Call for help between reserved servers.** The access-code path and the helper ticket have code and a unit test, and no run between two servers.
 - **The idle check in real time.** Nobody waited 15 minutes, and no real player was removed; the window's button was not clicked by hand (its remote was fired instead).
 - **Distance checks.** Trade (24 studs) and decoration (16 studs) were tested with the distance check switched off.
@@ -136,4 +138,5 @@ The places are the source of truth; the game is not built from the repository. E
 
 - **Game place, new:** the nine scripts and two specs are under `studio-src/`, at their Studio paths (81,256 bytes): `Config/Coop`, `Locale/CoopStrings`, `Modules/Matchmaking`, `Services/AfkService`, `Services/DecorService`, `Services/LobbyLinkService`, `Services/TradeService`, `Controllers/CoopController`, `Controllers/TradeController`, `Tests/AuditLobbyLink.spec`, `Tests/AuditCoop.spec`.
 - **Game place, edited:** `studio-src/changes-m9.diff` records every line changed in the six edited scripts, compared with the backup above (7,568 bytes, Adler-32 2462143991). They are `Config.Game`, `Modules.Locale`, `Modules.Net`, `DefenseService`, `PartyService` and `PlayerService`.
+- **Game place, edited, in full:** five of those six are also copied whole, as they stand in version 33 (51,688 bytes): `Modules/Locale`, `Modules/Net`, `Services/DefenseService`, `Services/PartyService`, `Services/PlayerService`. These copies include the edits of earlier milestones. `Config.Game` is not copied whole: it holds the account and group ids that open the developer panel, and those are not in this public repository. Its two changed lines are in the diff.
 - **Lobby:** all 17 scripts are under `studio-src/lobby-place/` (74,137 bytes). The built blockout model is in the place only; `LobbyBuilder` rebuilds it.
